@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background-color: #f6f7f9;
+  color: #101828;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d0d5dd transparent;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.toast-in {
+  animation: toast-in 0.18s ease-out;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand-800 text-white hover:bg-brand-900 focus-visible:ring-brand-700;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink-700 border border-ink-200 hover:bg-ink-50 focus-visible:ring-ink-300;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-ink-100;
+  }
+  .field-label {
+    @apply block text-sm font-medium text-ink-700 mb-1.5;
+  }
+  .field-input {
+    @apply w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600;
+  }
+  .field-error {
+    @apply mt-1.5 text-xs text-red-600;
+  }
+  .card {
+    @apply bg-white border border-ink-200 rounded-lg shadow-card;
+  }
+}
