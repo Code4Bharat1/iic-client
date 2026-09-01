@@ -103,7 +103,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="relative text-xs text-brand-200/60">Internal institutional system · Interactive Innovation Council</p>
+        <p className="relative text-xs text-brand-200/60">Venue, Resource and Event Operations</p>
       </div>
 
       {/* Right — sign-in */}
@@ -168,7 +168,6 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-ink-400 mt-8 lg:hidden">
-            Internal institutional system · Interactive Innovation Council
           </p>
         </div>
       </div>
