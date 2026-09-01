@@ -7,11 +7,11 @@ export default function Stepper({ steps, current }) {
           <li key={label} className="flex items-center flex-1 min-w-[92px]">
             <div className="flex items-center gap-2">
               <div
-                className={`h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold border ${
+                className={`h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold border transition-all duration-200 ${
                   state === 'done'
                     ? 'bg-brand-800 border-brand-800 text-white'
                     : state === 'active'
-                    ? 'border-brand-800 text-brand-800 bg-white'
+                    ? 'border-brand-800 text-brand-800 bg-white ring-4 ring-brand-100'
                     : 'border-ink-200 text-ink-400 bg-white'
                 }`}
               >
@@ -21,7 +21,7 @@ export default function Stepper({ steps, current }) {
                   String(i + 1).padStart(2, '0')
                 )}
               </div>
-              <span className={`text-xs font-medium whitespace-nowrap hidden sm:inline ${state === 'upcoming' ? 'text-ink-400' : 'text-ink-800'}`}>
+              <span className={`text-xs whitespace-nowrap hidden sm:inline transition-colors duration-200 ${state === 'active' ? 'font-semibold text-ink-900' : state === 'upcoming' ? 'font-medium text-ink-400' : 'font-medium text-ink-800'}`}>
                 {label}
               </span>
             </div>

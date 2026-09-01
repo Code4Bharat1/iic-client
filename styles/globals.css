@@ -4,55 +4,111 @@
 
 html,
 body {
-  background-color: #f6f7f9;
-  color: #101828;
+  background-color: #faf8f4;
+  color: #211c18;
+}
+
+body {
+  position: relative;
+}
+
+/* A faint paper grain over the whole app — breaks the flat, sterile look of a
+   plain solid background without being visible as "texture" at a glance. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: theme('backgroundImage.grain');
+  opacity: 0.025;
+  mix-blend-mode: multiply;
+}
+
+#__next {
+  position: relative;
+  z-index: 1;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d0d5dd transparent;
+  scrollbar-color: #c6b9a8 transparent;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.toast-in {
+  animation: toast-in 0.22s theme('transitionTimingFunction.spring');
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-.toast-in {
-  animation: toast-in 0.18s ease-out;
+.rise-in {
+  animation: rise-in 0.28s theme('transitionTimingFunction.spring') both;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.slide-in {
+  animation: slide-in 0.3s theme('transitionTimingFunction.spring') both;
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold tracking-[-0.01em] transition-all duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98];
   }
   .btn-primary {
-    @apply btn bg-brand-800 text-white hover:bg-brand-900 focus-visible:ring-brand-700;
+    @apply btn bg-brand-800 text-white shadow-xs hover:bg-brand-900 hover:shadow-raised hover:-translate-y-px focus-visible:ring-brand-600;
   }
   .btn-secondary {
-    @apply btn bg-white text-ink-700 border border-ink-200 hover:bg-ink-50 focus-visible:ring-ink-300;
+    @apply btn bg-white text-ink-700 border border-ink-200 hover:border-ink-300 hover:bg-ink-50 focus-visible:ring-ink-300;
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500;
+    @apply btn bg-red-700 text-white shadow-xs hover:bg-red-800 hover:shadow-raised hover:-translate-y-px focus-visible:ring-red-500;
   }
   .btn-ghost {
-    @apply btn text-ink-600 hover:bg-ink-100;
+    @apply btn text-ink-600 hover:bg-ink-100 active:scale-[0.98];
   }
   .field-label {
     @apply block text-sm font-medium text-ink-700 mb-1.5;
   }
   .field-input {
-    @apply w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600;
+    @apply w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 transition-shadow duration-150 focus:outline-none focus:ring-[3px] focus:ring-brand-600/[0.15] focus:border-brand-600;
   }
   .field-error {
-    @apply mt-1.5 text-xs text-red-600;
+    @apply mt-1.5 text-xs text-red-700;
   }
   .card {
-    @apply bg-white border border-ink-200 rounded-lg shadow-card;
+    @apply bg-white rounded-lg shadow-card;
   }
 }

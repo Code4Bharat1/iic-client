@@ -10,9 +10,9 @@ export default function DataTable({ columns, rows, keyField = '_id', onRowClick,
     <div className="overflow-x-auto -mx-px">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-ink-200 bg-ink-50/60">
+          <tr className="border-b border-ink-150">
             {columns.map((col) => (
-              <th key={col.key} className={`text-left font-medium text-ink-500 px-4 py-2.5 whitespace-nowrap ${col.className || ''}`}>
+              <th key={col.key} className={`text-left font-semibold text-[11px] uppercase tracking-[0.06em] text-ink-500 px-4 py-2.5 whitespace-nowrap ${col.className || ''}`}>
                 {col.label}
               </th>
             ))}
@@ -23,7 +23,7 @@ export default function DataTable({ columns, rows, keyField = '_id', onRowClick,
             <tr
               key={row[keyField]}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={`border-b border-ink-100 last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-ink-50/70' : ''}`}
+              className={`border-b border-ink-100 last:border-0 transition-colors duration-100 ${onRowClick ? 'cursor-pointer hover:bg-brand-50/50' : ''}`}
             >
               {columns.map((col) => (
                 <td key={col.key} className={`px-4 py-3 align-middle text-ink-700 ${col.className || ''}`}>

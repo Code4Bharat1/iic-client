@@ -1,6 +1,6 @@
 export default function UtilisationBar({ label, percent, sublabel }) {
   const pct = Math.max(0, Math.min(100, percent || 0));
-  const tone = pct >= 75 ? 'bg-red-500' : pct >= 45 ? 'bg-amber-500' : 'bg-emerald-500';
+  const tone = pct >= 75 ? 'bg-red-600' : pct >= 45 ? 'bg-amber-500' : 'bg-brand-600';
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1.5">

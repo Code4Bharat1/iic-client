@@ -36,10 +36,10 @@ export default function TopBar({ onOpenMenu }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-ink-200">
+    <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur-md border-b border-ink-150">
       <div className="flex items-center gap-3 px-4 sm:px-6 h-14">
-        <button onClick={onOpenMenu} className="lg:hidden h-9 w-9 flex items-center justify-center rounded-md text-ink-600 hover:bg-ink-100" aria-label="Open menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <button onClick={onOpenMenu} className="lg:hidden h-9 w-9 flex items-center justify-center rounded-md text-ink-600 hover:bg-ink-100 active:scale-95 transition-all" aria-label="Open menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
@@ -57,7 +57,7 @@ export default function TopBar({ onOpenMenu }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search bookings…"
-              className="w-full rounded-md border border-ink-200 bg-ink-50/50 pl-9 pr-3 py-1.5 text-sm placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+              className="w-full rounded-md border border-ink-150 bg-white/70 pl-9 pr-3 py-1.5 text-sm placeholder:text-ink-400 transition-all focus:outline-none focus:ring-[3px] focus:ring-brand-600/[0.15] focus:border-brand-600 focus:bg-white"
             />
           </div>
         </form>
