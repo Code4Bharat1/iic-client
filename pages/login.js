@@ -1,29 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 
-const DEMO_ROLES = [
-  {
-    role: 'organiser',
-    title: 'Continue as Organiser',
-    description: 'Create bookings, track approvals, complete closure.',
-  },
-  {
-    role: 'admin',
-    title: 'Continue as Admin',
-    description: 'Review approvals, manage resources, verify closure.',
-  },
-  {
-    role: 'master_admin',
-    title: 'Continue as Master Admin',
-    description: 'Full system control, overrides and configuration.',
-  },
-];
-
 // A quiet architectural motif — three floor plates, standing in for the venue
-// structure the whole product is organised around. Deliberately not a stock
-// gradient blob: it's specific to what this system actually does.
+// structure the whole product is organised around.
 function FloorMotif() {
   return (
     <svg viewBox="0 0 360 320" fill="none" className="w-full h-auto max-w-sm">
@@ -42,12 +23,23 @@ function FloorMotif() {
 }
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const [busyRole, setBusyRole] = useState(null);
-  const [credError, setCredError] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const identifierRef = useRef(null);
 
+  // If already authenticated, go straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [authLoading, user, router]);
+
+  // Show session-expired toast
   useEffect(() => {
     if (router.isReady && router.query.expired) {
       toast('Your session has ended. Please sign in again.', 'error');
@@ -56,21 +48,27 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.expired]);
 
-  async function handleDemoLogin(role) {
-    setBusyRole(role);
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    if (!identifier.trim()) {
+      setError('Please enter your Authorised User ID or email.');
+      identifierRef.current?.focus();
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+    setSubmitting(true);
     try {
-      await login(role);
+      await login(identifier.trim(), password);
       router.push('/dashboard');
     } catch (err) {
-      toast(err.message || 'Unable to sign in.', 'error');
+      setError(err.message || 'Unable to sign in. Please try again.');
     } finally {
-      setBusyRole(null);
+      setSubmitting(false);
     }
-  }
-
-  function handleManualSubmit(e) {
-    e.preventDefault();
-    setCredError('Authorised User ID and password sign-in is not enabled in this preview. Use a demo access option below.');
   }
 
   return (
@@ -120,55 +118,47 @@ export default function LoginPage() {
           <h1 className="font-display text-[1.7rem] text-ink-900 tracking-[-0.02em]">Sign in</h1>
           <p className="text-sm text-ink-500 mt-1.5 mb-7">Authorised institutional access only.</p>
 
-          <form onSubmit={handleManualSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <label className="field-label">Authorised User ID</label>
-              <input className="field-input" placeholder="e.g. ORG-1001" autoComplete="username" />
+              <label htmlFor="identifier" className="field-label">Authorised User ID</label>
+              <input
+                id="identifier"
+                ref={identifierRef}
+                className="field-input"
+                placeholder="e.g. ORG-1001 or email"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => { setIdentifier(e.target.value); setError(''); }}
+                disabled={submitting}
+              />
             </div>
             <div>
-              <label className="field-label">Password</label>
-              <input type="password" className="field-input" placeholder="••••••••" autoComplete="current-password" />
+              <label htmlFor="password" className="field-label">Password</label>
+              <input
+                id="password"
+                type="password"
+                className="field-input"
+                placeholder="••••••••"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                disabled={submitting}
+              />
             </div>
-            {credError && <p className="field-error -mt-2">{credError}</p>}
-            <button type="submit" className="btn-primary w-full">
-              Sign In
+
+            {error && <p className="field-error -mt-2">{error}</p>}
+
+            <button
+              id="sign-in-btn"
+              type="submit"
+              className="btn-primary w-full"
+              disabled={submitting}
+            >
+              {submitting ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
-          <div className="relative my-7">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-ink-150" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-surface px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">Demo Access</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {DEMO_ROLES.map((opt) => (
-              <button
-                key={opt.role}
-                onClick={() => handleDemoLogin(opt.role)}
-                disabled={busyRole !== null}
-                className="group w-full flex items-center justify-between gap-3 rounded-md border border-ink-150 bg-white px-3.5 py-3 text-left transition-all duration-150 hover:border-brand-500 hover:shadow-raised hover:-translate-y-px active:scale-[0.99] disabled:opacity-60"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-ink-900">{opt.title}</p>
-                  <p className="text-xs text-ink-500 mt-0.5">{opt.description}</p>
-                </div>
-                {busyRole === opt.role ? (
-                  <span className="text-xs text-ink-400 shrink-0">Signing in…</span>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-300 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-600">
-                    <path d="M9 6l6 6-6 6" />
-                  </svg>
-                )}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-center text-xs text-ink-400 mt-8 lg:hidden">
-          </p>
+          <p className="text-center text-xs text-ink-400 mt-8 lg:hidden" />
         </div>
       </div>
     </div>

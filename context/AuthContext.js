@@ -9,34 +9,51 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Restore session from localStorage on mount
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('iic.user') : null;
-    if (stored) {
+    if (typeof window === 'undefined') return;
+    const storedUser = window.localStorage.getItem('iic.user');
+    const storedToken = window.localStorage.getItem('iic.token');
+    if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(stored));
+        setUser(JSON.parse(storedUser));
       } catch {
         // ignore corrupt storage
+        window.localStorage.removeItem('iic.user');
+        window.localStorage.removeItem('iic.token');
       }
     }
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (role) => {
-    const demoUser = await api.post('/auth/demo-login', { role });
-    window.localStorage.setItem('iic.userId', demoUser._id);
-    window.localStorage.setItem('iic.user', JSON.stringify(demoUser));
-    setUser(demoUser);
-    return demoUser;
+  /**
+   * login(identifier, password)
+   * identifier can be a userId (e.g. "ORG-1001") or an email address.
+   * On success: stores token + user in localStorage, sets user state.
+   * Returns the authenticated user object.
+   */
+  const login = useCallback(async (identifier, password) => {
+    const data = await api.post('/auth/login', { identifier, password });
+    window.localStorage.setItem('iic.token', data.token);
+    window.localStorage.setItem('iic.user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
   }, []);
 
   const logout = useCallback(() => {
-    window.localStorage.removeItem('iic.userId');
+    window.localStorage.removeItem('iic.token');
     window.localStorage.removeItem('iic.user');
     setUser(null);
     router.push('/login');
   }, [router]);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  const isAuthenticated = !!user;
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
