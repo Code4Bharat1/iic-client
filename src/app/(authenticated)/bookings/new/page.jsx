@@ -43,8 +43,31 @@ export default function NewBookingPage() {
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [result, setResult] = useState(null);
 
+  const DRAFT_KEY = 'iic.booking.draft';
+
+  // Persist draft to sessionStorage on every form/step change
   useEffect(() => {
-    if (!user || !true) return;
+    if (!form) return;
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step }));
+  }, [form, step]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Restore draft from sessionStorage if available
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const { form: savedForm, step: savedStep } = JSON.parse(saved);
+        setForm(savedForm);
+        setStep(savedStep || 0);
+        return; // skip default initialisation
+      }
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY);
+    }
+
+    // Default: initialise blank form pre-filled with user info
     setForm({
       eventName: '',
       purpose: '',
@@ -64,7 +87,7 @@ export default function NewBookingPage() {
       specialRequirements: '',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, true]);
+  }, [user]);
 
   const maxDate = useMemo(() => {
     if (!settings) return undefined;
@@ -183,6 +206,7 @@ export default function NewBookingPage() {
       const booking = await api.post('/bookings', buildPayload(overrideReason));
       setResult(booking);
       setStep(5);
+      sessionStorage.removeItem(DRAFT_KEY); // clear draft on success
       toast('Booking submitted successfully.', 'success');
     } catch (err) {
       if (err instanceof ApiError && (err.payload?.conflict || err.payload?.resourceConflict)) {
@@ -198,7 +222,25 @@ export default function NewBookingPage() {
 
   return (
     <>
-      <PageHeader title="New Booking" subtitle="Reserve a floor and resources for an institutional event." />
+      <div className="flex items-center justify-between">
+        <PageHeader title="New Booking" subtitle="Reserve a floor and resources for an institutional event." />
+        {step < 5 && (
+          <button
+            className="text-xs text-ink-400 hover:text-red-600 underline mr-1"
+            onClick={() => {
+              sessionStorage.removeItem(DRAFT_KEY);
+              setStep(0);
+              setForm({
+                eventName: '', purpose: '', expectedAttendance: '',
+                organiser: { name: user.name, userId: user.userId, department: user.department || '', mobile: user.mobile || '', email: user.email || '' },
+                floor: '', date: '', startTime: '', endTime: '', resources: {}, specialRequirements: '',
+              });
+            }}
+          >
+            Clear form
+          </button>
+        )}
+      </div>
 
       <div className="card p-4 sm:p-6 max-w-3xl">
         <Stepper steps={STEPS} current={step} />

@@ -1,5 +1,5 @@
 'use client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '@/hooks/useApi';
 import LoadingState from '@/components/ui/LoadingState';
@@ -15,7 +15,8 @@ const BANNER_STYLES = {
 
 export default function EventDayPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params?.id;
   const { data: booking, loading } = useApi(id ? `/bookings/${id}` : null, [id]);
 
   if (loading) return <LoadingState rows={8} />;

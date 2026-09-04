@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useApi } from '@/hooks/useApi';
 import { api, ApiError } from '@/services/api-client';
 import { useToast } from '@/context/ToastContext';
@@ -11,7 +11,8 @@ import ResourceQuantityInput from '@/components/ui/ResourceQuantityInput';
 
 export default function EditBookingPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params?.id;
   const { toast } = useToast();
   const floors = useBookableFloors();
   const { data: booking, loading } = useApi(id ? `/bookings/${id}` : null, [id]);

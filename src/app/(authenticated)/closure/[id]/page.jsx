@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useApi } from '@/hooks/useApi';
@@ -16,7 +16,8 @@ import { CLOSURE_CHECKLIST_ITEMS, PHOTO_CATEGORIES, formatDate, formatTimeRange 
 
 export default function ClosureDetailPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: booking, loading, refetch, setData } = useApi(id ? `/bookings/${id}` : null, [id]);
@@ -26,6 +27,7 @@ export default function ClosureDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [issueOpen, setIssueOpen] = useState(false);
+  const [issueResource, setIssueResource] = useState('');
 
   if (loading) return <LoadingState rows={8} />;
   if (!booking) return <EmptyState title="Booking not found" />;
@@ -78,6 +80,11 @@ export default function ClosureDetailPage() {
     router.push('/closure');
   }
 
+  function openIssueForResource(resourceLabel) {
+    setIssueResource(resourceLabel);
+    setIssueOpen(true);
+  }
+
   const isReadOnlyForOrganiser = !isOwner || submitted || booking.status !== 'awaiting_closure';
 
   return (
@@ -123,16 +130,29 @@ export default function ClosureDetailPage() {
       </div>
 
       <div className="card p-4 sm:p-5 mb-5">
-        <h2 className="text-sm font-semibold text-ink-900 mb-4">Closure Photographs</h2>
+        <h2 className="text-sm font-semibold text-ink-900 mb-1">Closure Photographs</h2>
+        <p className="text-xs text-ink-500 mb-4">Click a card to report an issue with that resource.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           {PHOTO_CATEGORIES.map((cat) => (
-            <PhotoUploader
+            <div
               key={cat.key}
-              label={cat.label}
-              photos={photos[cat.key] || []}
-              uploading={uploadingCategory === cat.key}
-              onUpload={(file) => handleUpload(cat.key, file)}
-            />
+              className="group relative"
+            >
+              <PhotoUploader
+                label={cat.label}
+                photos={photos[cat.key] || []}
+                uploading={uploadingCategory === cat.key}
+                onUpload={(file) => handleUpload(cat.key, file)}
+              />
+              {/* Clickable overlay to report an issue for this resource */}
+              <button
+                type="button"
+                onClick={() => openIssueForResource(cat.label)}
+                className="absolute top-2 right-2 text-xs text-red-600 hover:text-red-800 font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded px-1.5 py-0.5 border border-red-200 shadow-sm"
+              >
+                Report issue
+              </button>
+            </div>
           ))}
         </div>
       </div>
@@ -156,7 +176,8 @@ export default function ClosureDetailPage() {
           <button className="btn-primary flex-1" onClick={() => setVerifyOpen(true)} disabled={!submitted && booking.status === 'awaiting_closure'}>
             Verify &amp; Close
           </button>
-          <button className="btn-danger flex-1" onClick={() => setIssueOpen(true)}>
+          {/* Report Issue button → navigates directly to /issues, no modal */}
+          <button className="btn-danger flex-1" onClick={() => router.push('/issues')}>
             Report Issue
           </button>
         </div>
@@ -171,19 +192,30 @@ export default function ClosureDetailPage() {
         confirmLabel="Verify & Close"
       />
 
-      <ReportIssueModal open={issueOpen} onClose={() => setIssueOpen(false)} booking={booking} onDone={() => { setIssueOpen(false); refetch(); }} />
+      <ReportIssueModal
+        open={issueOpen}
+        onClose={() => setIssueOpen(false)}
+        booking={booking}
+        prefilledResource={issueResource}
+        onDone={() => { setIssueOpen(false); refetch(); }}
+      />
     </div>
   );
 }
 
-function ReportIssueModal({ open, onClose, booking, onDone }) {
+function ReportIssueModal({ open, onClose, booking, prefilledResource, onDone }) {
   const { toast } = useToast();
-  const [resourceName, setResourceName] = useState('');
+  const [resourceName, setResourceName] = useState(prefilledResource || '');
   const [issueType, setIssueType] = useState('damaged');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Sync pre-filled resource whenever the modal opens for a different card
+  useEffect(() => {
+    if (open) setResourceName(prefilledResource || '');
+  }, [open, prefilledResource]);
 
   async function handleUpload(file) {
     setUploading(true);

@@ -15,7 +15,7 @@ class ApiError extends Error {
 
 function getToken() {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem('iic.token');
+  return window.sessionStorage.getItem('iic.token');
 }
 
 async function request(path, { method = 'GET', body, isFormData = false } = {}) {
@@ -43,8 +43,8 @@ async function request(path, { method = 'GET', body, isFormData = false } = {}) 
   if (!res.ok) {
     // Session expired or invalid token — force back to login
     if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.localStorage.removeItem('iic.token');
-      window.localStorage.removeItem('iic.user');
+      window.sessionStorage.removeItem('iic.token');
+      window.sessionStorage.removeItem('iic.user');
       window.location.href = '/login?expired=1';
     }
     throw new ApiError(payload?.error || payload?.message || 'Request failed', res.status, payload);

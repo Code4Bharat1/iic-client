@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { getNavSections } from './navConfig';
 import { ROLE_LABELS } from '@/lib/constants';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +14,7 @@ function NavIcon({ path }) {
 
 export function SidebarContent({ onNavigate }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const sections = getNavSections(user?.role);
 
@@ -35,7 +36,7 @@ export function SidebarContent({ onNavigate }) {
             <p className="px-2.5 mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-ink-400">{section.title}</p>
             <div className="space-y-0.5">
               {section.items.map((item) => {
-                const active = router.pathname === item.href || router.pathname.startsWith(item.href + '/');
+                const active = pathname === item.href || pathname?.startsWith(item.href + '/');
                 return (
                   <Link
                     key={item.href}

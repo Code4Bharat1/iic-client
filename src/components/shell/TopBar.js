@@ -1,4 +1,4 @@
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import NotificationsMenu from './NotificationsMenu';
 
@@ -28,6 +28,7 @@ function currentTitle(pathname) {
 
 export default function TopBar({ onOpenMenu }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [search, setSearch] = useState('');
 
   function submitSearch(e) {
@@ -44,8 +45,8 @@ export default function TopBar({ onOpenMenu }) {
           </svg>
         </button>
 
-        <p className="text-sm font-semibold text-ink-800 lg:hidden">{currentTitle(router.pathname)}</p>
-        <p className="hidden lg:block text-sm text-ink-500">{currentTitle(router.pathname)}</p>
+        <p className="text-sm font-semibold text-ink-800 lg:hidden">{currentTitle(pathname)}</p>
+        <p className="hidden lg:block text-sm text-ink-500">{currentTitle(pathname)}</p>
 
         <form onSubmit={submitSearch} className="ml-auto hidden md:block w-64">
           <div className="relative">

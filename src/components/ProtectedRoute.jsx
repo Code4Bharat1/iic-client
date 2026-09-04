@@ -5,13 +5,14 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !isAuthenticated && pathname !== '/login') {
       router.push('/login');
     }
-  }, [loading, isAuthenticated, router, pathname]);
+  }, [loading, isAuthenticated, pathname]);
 
   if (loading || (!isAuthenticated && pathname !== '/login')) {
     return (

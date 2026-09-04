@@ -1,5 +1,5 @@
 'use client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useApi } from '@/hooks/useApi';
@@ -30,7 +30,8 @@ function Row({ label, value }) {
 
 export default function BookingDetailPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params?.id;
   const { user } = useAuth();
   const { data: booking, loading, error } = useApi(id ? `/bookings/${id}` : null, [id]);
 

@@ -10,21 +10,33 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Restore session from localStorage on mount
+  // Restore session: validate stored token against the API on every mount.
+  // sessionStorage is per-tab — a new tab is always unauthenticated.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const storedUser = window.localStorage.getItem('iic.user');
-    const storedToken = window.localStorage.getItem('iic.token');
-    if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        // ignore corrupt storage
-        window.localStorage.removeItem('iic.user');
-        window.localStorage.removeItem('iic.token');
-      }
+    const storedToken = window.sessionStorage.getItem('iic.token');
+
+    if (!storedToken) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    // Verify token is still valid server-side
+    api.get('/auth/me')
+      .then((freshUser) => {
+        // Update stored user with latest data from server
+        window.sessionStorage.setItem('iic.user', JSON.stringify(freshUser));
+        setUser(freshUser);
+      })
+      .catch(() => {
+        // Token expired or invalid — clear storage, force login
+        window.sessionStorage.removeItem('iic.token');
+        window.sessionStorage.removeItem('iic.user');
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   /**
@@ -35,15 +47,15 @@ export function AuthProvider({ children }) {
    */
   const login = useCallback(async (identifier, password) => {
     const data = await api.post('/auth/login', { identifier, password });
-    window.localStorage.setItem('iic.token', data.token);
-    window.localStorage.setItem('iic.user', JSON.stringify(data.user));
+    window.sessionStorage.setItem('iic.token', data.token);
+    window.sessionStorage.setItem('iic.user', JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   }, []);
 
   const logout = useCallback(() => {
-    window.localStorage.removeItem('iic.token');
-    window.localStorage.removeItem('iic.user');
+    window.sessionStorage.removeItem('iic.token');
+    window.sessionStorage.removeItem('iic.user');
     setUser(null);
     router.push('/login');
   }, [router]);

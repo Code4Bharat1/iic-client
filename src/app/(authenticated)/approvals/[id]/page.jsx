@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useApi } from '@/hooks/useApi';
@@ -23,7 +23,8 @@ function Row({ label, value }) {
 
 export default function ApprovalWorkspacePage() {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: booking, loading } = useApi(id ? `/bookings/${id}` : null, [id]);

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useApi } from '@/hooks/useApi';
@@ -18,7 +18,8 @@ const CATEGORIES = ['Seating', 'Furniture', 'Electronics', 'Audio', 'Other'];
 
 export default function ResourceDetailPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: resource, loading, refetch } = useApi(id ? `/resources/${id}` : null, [id]);
