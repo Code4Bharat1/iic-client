@@ -41,6 +41,13 @@ h3 {
   text-wrap: balance;
 }
 
+/* Hide native Edge / IE password reveal and clear buttons to prevent duplicate eye icon */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+
 @keyframes toast-in {
   from {
     opacity: 0;

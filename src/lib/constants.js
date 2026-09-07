@@ -31,6 +31,7 @@ export const LIFECYCLE_STAGES = [
 ];
 
 export const FLOOR_LABELS = {
+  all: 'Shared (All Floors)',
   ground: 'Ground Floor',
   basement: 'Basement',
   first: '1st Floor',
@@ -81,12 +82,14 @@ export function formatDate(dateStr) {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+export function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 export function formatTimeRange(start, end) {
-  const fmt = (t) => {
-    const [h, m] = t.split(':').map(Number);
-    const period = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    return `${hour}:${String(m).padStart(2, '0')} ${period}`;
-  };
-  return `${fmt(start)} – ${fmt(end)}`;
+  return `${formatTime(start)} – ${formatTime(end)}`;
 }

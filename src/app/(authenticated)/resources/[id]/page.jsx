@@ -12,6 +12,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import LoadingState from '@/components/ui/LoadingState';
 import EmptyState from '@/components/ui/EmptyState';
 import Modal from '@/components/ui/Modal';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { FLOOR_LABELS, formatDate, formatTimeRange } from '@/lib/constants';
 
 const CATEGORIES = ['Seating', 'Furniture', 'Electronics', 'Audio', 'Other'];
@@ -25,19 +26,23 @@ export default function ResourceDetailPage() {
   const { data: resource, loading, refetch } = useApi(id ? `/resources/${id}` : null, [id]);
   const floors = useBookableFloors();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [form, setForm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (loading) return <LoadingState rows={8} />;
   if (!resource) return <EmptyState title="Resource not found" />;
 
-  const canManage = user.role === 'admin' || user.role === 'master_admin';
+  const canManage = user?.role === 'admin' || user?.role === 'master_admin';
 
   function openEdit() {
     setForm({
       name: resource.name,
       category: resource.category,
-      floor: resource.floor,
+      inventoryScope: resource.inventoryScope || (resource.floor === 'all' ? 'shared' : 'floor'),
+      floor: resource.floor || 'all',
+      unitType: resource.unitType || 'quantity',
       totalQuantity: resource.totalQuantity,
       notes: resource.notes || '',
       reason: '',
@@ -52,7 +57,11 @@ export default function ResourceDetailPage() {
   async function saveResource() {
     setSubmitting(true);
     try {
-      await api.put(`/resources/${id}`, { ...form, totalQuantity: Number(form.totalQuantity) });
+      await api.put(`/resources/${id}`, {
+        ...form,
+        floor: form.inventoryScope === 'shared' ? 'all' : form.floor,
+        totalQuantity: Number(form.totalQuantity),
+      });
       toast('Resource updated.', 'success');
       setEditOpen(false);
       refetch();
@@ -64,9 +73,30 @@ export default function ResourceDetailPage() {
   }
 
   async function toggleActive() {
-    await api.post(`/resources/${id}/status`, { active: !resource.active, reason: resource.active ? 'Disabled via resource management' : 'Re-enabled via resource management' });
-    toast(resource.active ? 'Resource disabled.' : 'Resource enabled.', 'success');
-    refetch();
+    try {
+      await api.post(`/resources/${id}/status`, {
+        active: !resource.active,
+        reason: resource.active ? 'Disabled via resource management' : 'Re-enabled via resource management',
+      });
+      toast(resource.active ? 'Resource disabled.' : 'Resource enabled.', 'success');
+      refetch();
+    } catch (err) {
+      toast(err.message || 'Unable to toggle status.', 'error');
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await api.delete(`/resources/${id}`);
+      toast('Resource deleted successfully.', 'success');
+      router.push('/resources');
+    } catch (err) {
+      toast(err.message || 'Unable to delete resource.', 'error');
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const allocationColumns = [
@@ -82,15 +112,18 @@ export default function ResourceDetailPage() {
     <>
       <PageHeader
         title={resource.name}
-        subtitle={`${resource.category} · ${FLOOR_LABELS[resource.floor]}`}
+        subtitle={`${resource.category} · ${resource.inventoryScope === 'shared' || resource.floor === 'all' ? 'Shared (All Floors)' : (FLOOR_LABELS[resource.floor] || resource.floor)}`}
         actions={
           canManage && (
-            <>
+            <div className="flex items-center gap-2">
               <button className="btn-secondary" onClick={openEdit}>Edit Resource</button>
-              <button className={resource.active ? 'btn-danger' : 'btn-primary'} onClick={toggleActive}>
+              <button className={resource.active ? 'btn-secondary text-amber-700' : 'btn-primary'} onClick={toggleActive}>
                 {resource.active ? 'Disable' : 'Enable'}
               </button>
-            </>
+              <button className="btn-danger text-xs px-2.5 py-1.5" onClick={() => setDeleteOpen(true)}>
+                Delete
+              </button>
+            </div>
           )
         }
       />
@@ -154,29 +187,68 @@ export default function ResourceDetailPage() {
               <label className="field-label">Resource Name</label>
               <input className="field-input" value={form.name} onChange={(e) => update({ name: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="field-label">Category</label>
-                <select className="field-input" value={form.category} onChange={(e) => update({ category: e.target.value })}>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+
+            <div>
+              <label className="field-label">Category</label>
+              <select className="field-input" value={form.category} onChange={(e) => update({ category: e.target.value })}>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="field-label">Inventory Scope</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => update({ inventoryScope: 'shared', floor: 'all' })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    form.inventoryScope === 'shared'
+                      ? 'border-brand-600 bg-brand-50/60 ring-1 ring-brand-600'
+                      : 'border-ink-200 hover:border-ink-300'
+                  }`}
+                >
+                  <span className="font-medium text-xs text-ink-900 block">Shared (All Floors)</span>
+                  <span className="text-[11px] text-ink-500">Available institution-wide across floors</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => update({ inventoryScope: 'floor', floor: form.floor === 'all' ? (floors[0]?.key || 'ground') : form.floor })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    form.inventoryScope === 'floor'
+                      ? 'border-brand-600 bg-brand-50/60 ring-1 ring-brand-600'
+                      : 'border-ink-200 hover:border-ink-300'
+                  }`}
+                >
+                  <span className="font-medium text-xs text-ink-900 block">Floor-Specific</span>
+                  <span className="text-[11px] text-ink-500">Restricted to a single floor</span>
+                </button>
               </div>
+            </div>
+
+            {form.inventoryScope === 'floor' && (
               <div>
-                <label className="field-label">Floor</label>
+                <label className="field-label">Assigned Floor</label>
                 <select className="field-input" value={form.floor} onChange={(e) => update({ floor: e.target.value })}>
                   {floors.map((f) => <option key={f.key} value={f.key}>{f.name}</option>)}
                 </select>
               </div>
-            </div>
+            )}
             <div>
               <label className="field-label">Total Quantity</label>
               <input
                 type="number"
                 min={0}
-                disabled={resource.unitType === 'toggle'}
                 className="field-input"
                 value={form.totalQuantity}
-                onChange={(e) => update({ totalQuantity: e.target.value })}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === '') {
+                    update({ totalQuantity: '' });
+                    return;
+                  }
+                  const val = Math.max(0, parseInt(raw, 10) || 0);
+                  update({ totalQuantity: val });
+                }}
               />
             </div>
             <div>
@@ -185,11 +257,21 @@ export default function ResourceDetailPage() {
             </div>
             <div>
               <label className="field-label">Reason for change</label>
-              <textarea className="field-input min-h-[60px]" value={form.reason} onChange={(e) => update({ reason: e.target.value })} placeholder="e.g. New inventory received, reassigned to better serve 2nd Floor demand" />
+              <textarea className="field-input min-h-[60px]" value={form.reason} onChange={(e) => update({ reason: e.target.value })} placeholder="e.g. New inventory received, reassigned to better serve demand" />
             </div>
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDelete}
+        title={`Delete "${resource.name}"?`}
+        description="Are you sure you want to permanently delete this resource from inventory? This action cannot be undone."
+        confirmLabel={deleting ? 'Deleting…' : 'Delete Resource'}
+        danger
+      />
     </>
   );
 }

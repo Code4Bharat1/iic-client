@@ -10,7 +10,8 @@ import PageHeader from '@/components/ui/PageHeader';
 import Stepper from '@/components/ui/Stepper';
 import ResourceQuantityInput from '@/components/ui/ResourceQuantityInput';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { FLOOR_LABELS, formatDate, formatTimeRange } from '@/lib/constants';
+import TimePicker12h from '@/components/ui/TimePicker12h';
+import { FLOOR_LABELS, formatDate, formatTime, formatTimeRange } from '@/lib/constants';
 
 const STEPS = ['Event', 'Organiser', 'Venue & Time', 'Resources', 'Review', 'Submitted'];
 
@@ -37,6 +38,7 @@ export default function NewBookingPage() {
 
   const [catalog, setCatalog] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitIssue, setSubmitIssue] = useState(null);
@@ -45,39 +47,20 @@ export default function NewBookingPage() {
 
   const DRAFT_KEY = 'iic.booking.draft';
 
-  // Persist draft to sessionStorage on every form/step change
-  useEffect(() => {
-    if (!form) return;
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step }));
-  }, [form, step]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Restore draft from sessionStorage if available
-    try {
-      const saved = sessionStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        const { form: savedForm, step: savedStep } = JSON.parse(saved);
-        setForm(savedForm);
-        setStep(savedStep || 0);
-        return; // skip default initialisation
-      }
-    } catch {
-      sessionStorage.removeItem(DRAFT_KEY);
-    }
-
-    // Default: initialise blank form pre-filled with user info
+  function resetForm() {
+    sessionStorage.removeItem(DRAFT_KEY);
+    setResult(null);
+    setStep(0);
     setForm({
       eventName: '',
       purpose: '',
       expectedAttendance: '',
       organiser: {
-        name: user.name,
-        userId: user.userId,
-        department: user.department || '',
-        mobile: user.mobile || '',
-        email: user.email || '',
+        name: user?.name || '',
+        userId: user?.userId || '',
+        department: user?.department || '',
+        mobile: user?.mobile || '',
+        email: user?.email || '',
       },
       floor: searchParams?.get('floor') || '',
       date: searchParams?.get('date') || '',
@@ -86,6 +69,47 @@ export default function NewBookingPage() {
       resources: {},
       specialRequirements: '',
     });
+  }
+
+  // Persist draft to sessionStorage only for incomplete bookings (steps 0-4)
+  useEffect(() => {
+    if (!form) return;
+    if (step >= 5) {
+      sessionStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step }));
+  }, [form, step]);
+
+  // If user lands on step 5 without an active result in memory, reset to step 0 immediately
+  useEffect(() => {
+    if (step >= 5 && !result && user) {
+      resetForm();
+    }
+  }, [step, result, user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Restore draft from sessionStorage if available and valid
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const { form: savedForm, step: savedStep } = JSON.parse(saved);
+        if (savedStep < 5 && savedForm) {
+          setForm(savedForm);
+          setStep(savedStep || 0);
+          return;
+        } else {
+          sessionStorage.removeItem(DRAFT_KEY);
+        }
+      }
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY);
+    }
+
+    // Default: initialise blank form pre-filled with user info
+    resetForm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -119,16 +143,16 @@ export default function NewBookingPage() {
 
   // --- resource catalog (Step 4: Resources) ---
   useEffect(() => {
-    if (step !== 3 || !form?.floor) return;
+    if (step !== 3 || !form?.floor || !form?.date || !form?.startTime || !form?.endTime) return;
     let cancelled = false;
     setCatalogLoading(true);
+    setCatalogError(null);
     api
       .get(`/resources/catalog?floor=${form.floor}&date=${form.date}&start=${form.startTime}&end=${form.endTime}`)
-      .then((res) => !cancelled && setCatalog(res))
-      .finally(() => !cancelled && setCatalogLoading(false));
-    return () => {
-      cancelled = true;
-    };
+      .then((res) => { if (!cancelled) { setCatalog(res); setCatalogError(null); } })
+      .catch((err) => { if (!cancelled) { setCatalogError(err.message || 'Failed to load resources.'); setCatalog([]); } })
+      .finally(() => { if (!cancelled) setCatalogLoading(false); });
+    return () => { cancelled = true; };
   }, [step, form?.floor, form?.date, form?.startTime, form?.endTime]);
 
   if (!form) return null;
@@ -301,7 +325,7 @@ export default function NewBookingPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="field-label">Floor</label>
-                <select className="field-input" value={form.floor} onChange={(e) => update({ floor: e.target.value })}>
+                <select className="field-input" value={form.floor} onChange={(e) => update({ floor: e.target.value, resources: {} })}>
                   <option value="">Select floor</option>
                   {floors.map((f) => (
                     <option key={f.key} value={f.key}>{f.name}</option>
@@ -318,12 +342,12 @@ export default function NewBookingPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="field-label">Start Time</label>
-                <input type="time" className="field-input" value={form.startTime} onChange={(e) => update({ startTime: e.target.value })} />
+                <TimePicker12h value={form.startTime} onChange={(v) => update({ startTime: v })} />
                 {errors.startTime && <p className="field-error">{errors.startTime}</p>}
               </div>
               <div>
                 <label className="field-label">End Time</label>
-                <input type="time" className="field-input" value={form.endTime} onChange={(e) => update({ endTime: e.target.value })} />
+                <TimePicker12h value={form.endTime} onChange={(v) => update({ endTime: v })} />
                 {errors.endTime && <p className="field-error">{errors.endTime}</p>}
               </div>
             </div>
@@ -338,7 +362,7 @@ export default function NewBookingPage() {
                     <p className="text-sm font-semibold text-red-700 mb-1">CONFLICT DETECTED</p>
                     {availability.conflicts.map((c) => (
                       <p key={c.id} className="text-sm text-ink-700">
-                        Another booking exists on this floor from {c.startTime} to {c.endTime} ({c.eventName}).
+                        Another booking exists on this floor from {formatTime(c.startTime)} to {formatTime(c.endTime)} ({c.eventName}).
                       </p>
                     ))}
                     {user.role !== 'master_admin' && (
@@ -358,9 +382,41 @@ export default function NewBookingPage() {
         {step === 3 && (
           <div className="space-y-4">
             {catalogLoading ? (
-              <p className="text-sm text-ink-500">Loading resource availability…</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="rounded-md border border-ink-200 px-3.5 py-3 animate-pulse">
+                    <div className="h-3.5 bg-ink-100 rounded w-2/3 mb-2" />
+                    <div className="h-3 bg-ink-100 rounded w-1/3" />
+                  </div>
+                ))}
+              </div>
+            ) : catalogError ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm font-semibold text-red-700 mb-1">Unable to load resources</p>
+                <p className="text-xs text-red-600">{catalogError}</p>
+                <button
+                  className="btn-secondary mt-3 text-xs"
+                  onClick={() => {
+                    setCatalogError(null);
+                    setCatalogLoading(true);
+                    api.get(`/resources/catalog?floor=${form.floor}&date=${form.date}&start=${form.startTime}&end=${form.endTime}`)
+                      .then((res) => { setCatalog(res); setCatalogError(null); })
+                      .catch((err) => setCatalogError(err.message || 'Failed to load resources.'))
+                      .finally(() => setCatalogLoading(false));
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
             ) : catalog.length === 0 ? (
-              <p className="text-sm text-ink-500">No resources configured for this floor.</p>
+              <div className="rounded-lg border border-ink-200 bg-ink-50/60 p-4 text-center">
+                <p className="text-sm font-medium text-ink-800">
+                  No active resources configured for {FLOOR_LABELS[form.floor] || form.floor}.
+                </p>
+                <p className="text-xs text-ink-500 mt-1">
+                  Resources are assigned to specific floors in Resource Management. Click &ldquo;Back&rdquo; to select a different floor, or configure inventory for this floor under Resource Management.
+                </p>
+              </div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-3">
                 {catalog.map((r) => (
@@ -393,7 +449,7 @@ export default function NewBookingPage() {
           />
         )}
 
-        {step === 5 && result && <SuccessStep booking={result} />}
+        {step === 5 && result && <SuccessStep booking={result} onNewBooking={resetForm} />}
 
         {step < 5 && (
           <div className="flex items-center justify-between mt-8 pt-5 border-t border-ink-100">
@@ -518,7 +574,7 @@ function Row({ label, value }) {
   );
 }
 
-function SuccessStep({ booking }) {
+function SuccessStep({ booking, onNewBooking }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -534,6 +590,7 @@ function SuccessStep({ booking }) {
       <p className="text-sm text-ink-500 mt-2 max-w-sm mx-auto">Your booking has been sent to IIC Administration for review.</p>
       <div className="flex items-center justify-center gap-2.5 mt-6">
         <button className="btn-secondary" onClick={() => router.push('/dashboard')}>Back to Dashboard</button>
+        <button className="btn-secondary" onClick={onNewBooking}>+ New Booking</button>
         <button className="btn-primary" onClick={() => router.push(`/bookings/${booking._id}`)}>View Booking</button>
       </div>
     </div>

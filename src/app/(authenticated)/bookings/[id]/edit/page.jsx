@@ -8,6 +8,8 @@ import { useBookableFloors } from '@/lib/floorOptions';
 import PageHeader from '@/components/ui/PageHeader';
 import LoadingState from '@/components/ui/LoadingState';
 import ResourceQuantityInput from '@/components/ui/ResourceQuantityInput';
+import TimePicker12h from '@/components/ui/TimePicker12h';
+import { formatTime } from '@/lib/constants';
 
 export default function EditBookingPage() {
   const router = useRouter();
@@ -26,28 +28,34 @@ export default function EditBookingPage() {
   useEffect(() => {
     if (!booking) return;
     const resources = {};
-    booking.resources.forEach((r) => {
-      resources[r.resource] = r.quantity;
+    (booking.resources || []).forEach((r) => {
+      const rid = r.resource?._id || r.resource || r.resourceId;
+      if (rid) {
+        resources[String(rid)] = r.quantity;
+      }
     });
     setForm({
-      eventName: booking.eventName,
-      purpose: booking.purpose,
-      expectedAttendance: booking.expectedAttendance,
-      organiser: booking.organiser,
-      floor: booking.floor,
-      date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
+      eventName: booking.eventName || '',
+      purpose: booking.purpose || '',
+      expectedAttendance: booking.expectedAttendance || '',
+      organiser: booking.organiser || {},
+      floor: booking.floor || '',
+      date: booking.date || '',
+      startTime: booking.startTime || '',
+      endTime: booking.endTime || '',
       resources,
       specialRequirements: booking.specialRequirements || '',
     });
   }, [booking]);
 
   useEffect(() => {
-    if (!form) return;
-    api.get(`/availability/check?floor=${form.floor}&date=${form.date}&start=${form.startTime}&end=${form.endTime}`).then(setAvailability);
-    api.get(`/resources/catalog?floor=${form.floor}&date=${form.date}&start=${form.startTime}&end=${form.endTime}`).then(setCatalog);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!form?.floor || !form?.date || !form?.startTime || !form?.endTime) {
+      setAvailability(null);
+      setCatalog([]);
+      return;
+    }
+    api.get(`/availability/check?floor=${form.floor}&date=${form.date}&start=${form.startTime}&end=${form.endTime}`).then(setAvailability).catch(() => setAvailability(null));
+    api.get(`/resources/catalog?floor=${form.floor}&date=${form.date}&start=${form.startTime}&end=${form.endTime}`).then(setCatalog).catch(() => setCatalog([]));
   }, [form?.floor, form?.date, form?.startTime, form?.endTime]);
 
   if (loading || !form) return <LoadingState rows={8} />;
@@ -126,17 +134,17 @@ export default function EditBookingPage() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label">Start Time</label>
-            <input type="time" className="field-input" value={form.startTime} onChange={(e) => update({ startTime: e.target.value })} required />
+            <TimePicker12h value={form.startTime} onChange={(v) => update({ startTime: v })} />
           </div>
           <div>
             <label className="field-label">End Time</label>
-            <input type="time" className="field-input" value={form.endTime} onChange={(e) => update({ endTime: e.target.value })} required />
+            <TimePicker12h value={form.endTime} onChange={(v) => update({ endTime: v })} />
           </div>
         </div>
 
         {availability && (
           <div className={`rounded-lg border p-3.5 text-sm ${availability.available ? 'border-emerald-200 bg-emerald-50/60 text-emerald-700' : 'border-red-200 bg-red-50/60 text-red-700'}`}>
-            {availability.available ? 'AVAILABLE' : `CONFLICT: reserved ${availability.conflicts[0]?.startTime}–${availability.conflicts[0]?.endTime}`}
+            {availability.available ? 'AVAILABLE' : `CONFLICT: reserved ${formatTime(availability.conflicts[0]?.startTime)}–${formatTime(availability.conflicts[0]?.endTime)}`}
           </div>
         )}
 

@@ -9,6 +9,7 @@ import Drawer from '@/components/ui/Drawer';
 import BookingQuickView from '@/components/ui/BookingQuickView';
 import LoadingState from '@/components/ui/LoadingState';
 import EmptyState from '@/components/ui/EmptyState';
+import TimePicker12h from '@/components/ui/TimePicker12h';
 import { FLOOR_LABELS } from '@/lib/constants';
 
 function fmtHour(h) {
@@ -16,6 +17,15 @@ function fmtHour(h) {
   const period = hh >= 12 ? 'PM' : 'AM';
   const hour = hh % 12 === 0 ? 12 : hh % 12;
   return `${hour} ${period}`;
+}
+
+// Convert "HH:mm" to human-friendly 12-hour display, e.g. "14:30" → "2:30 PM"
+function to12hr(hhmm) {
+  if (!hhmm) return '';
+  const [hh, mm] = hhmm.split(':').map(Number);
+  const period = hh >= 12 ? 'PM' : 'AM';
+  const hour = hh % 12 === 0 ? 12 : hh % 12;
+  return `${hour}:${String(mm).padStart(2, '0')} ${period}`;
 }
 
 export default function AvailabilityPage() {
@@ -140,13 +150,13 @@ export default function AvailabilityPage() {
           </div>
           <div>
             <label className="field-label">Start Time</label>
-            <input type="time" className="field-input" value={checkForm.start} onChange={(e) => setCheckForm((f) => ({ ...f, start: e.target.value }))} />
+            <TimePicker12h value={checkForm.start} onChange={(v) => setCheckForm((f) => ({ ...f, start: v }))} />
           </div>
           <div>
             <label className="field-label">End Time</label>
-            <input type="time" className="field-input" value={checkForm.end} onChange={(e) => setCheckForm((f) => ({ ...f, end: e.target.value }))} />
+            <TimePicker12h value={checkForm.end} onChange={(v) => setCheckForm((f) => ({ ...f, end: v }))} />
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end pb-0 sm:pb-0">
             <button className="btn-primary w-full" onClick={() => runCheck()} disabled={checking}>
               {checking ? 'Checking…' : 'Check Availability'}
             </button>
@@ -156,7 +166,7 @@ export default function AvailabilityPage() {
         {checkResult && (
           <div className={`rounded-lg border p-4 ${checkResult.available ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}`}>
             <p className="text-sm font-semibold mb-1">
-              {FLOOR_LABELS[checkResult.floor]} · {checkResult.start}–{checkResult.end}
+              {FLOOR_LABELS[checkResult.floor]} · {to12hr(checkResult.start)} – {to12hr(checkResult.end)}
             </p>
             {checkResult.available ? (
               <>
@@ -186,13 +196,39 @@ export default function AvailabilityPage() {
               <>
                 <p className="text-sm text-red-700 font-medium mb-2">CONFLICT DETECTED</p>
                 {checkResult.conflicts.map((c) => (
-                  <p key={c.id} className="text-sm text-ink-600 mb-2">
-                    Already reserved by <span className="font-medium">{c.eventName}</span> from {c.startTime} to {c.endTime}.
+                  <p key={c.id} className="text-sm text-ink-600 mb-1">
+                    Already reserved by <span className="font-medium">{c.eventName}</span> from {to12hr(c.startTime)} to {to12hr(c.endTime)}.
                   </p>
                 ))}
-                <button className="btn-secondary" onClick={() => document.getElementById('__next')?.scrollTo(0, 0)}>
-                  View Available Slots Above
-                </button>
+
+                {/* Show available sub-slots within the selected range */}
+                {checkResult.freeWindows && checkResult.freeWindows.length > 0 ? (
+                  <div className="mt-4 pt-4 border-t border-red-200">
+                    <p className="text-sm font-semibold text-ink-800 mb-2">
+                      ✅ Available slots within your selection:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {checkResult.freeWindows.map((w, i) => (
+                        <button
+                          key={i}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-medium hover:bg-emerald-100 transition-colors"
+                          onClick={() =>
+                            router.push(
+                              `/bookings/new?floor=${checkResult.floor}&date=${date}&start=${w.start}&end=${w.end}`
+                            )
+                          }
+                        >
+                          {to12hr(w.start)} – {to12hr(w.end)}
+                          <span className="text-emerald-600">→ Book</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-red-600 font-medium">
+                    No free slots available within {to12hr(checkResult.start)} – {to12hr(checkResult.end)} on this floor.
+                  </p>
+                )}
               </>
             )}
           </div>
