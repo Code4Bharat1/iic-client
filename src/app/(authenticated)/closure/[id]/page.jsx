@@ -39,7 +39,7 @@ export default function ClosureDetailPage() {
   const submitted = !!booking.closure?.submittedAt;
 
   const checklistComplete = CLOSURE_CHECKLIST_ITEMS.every((item) => activeChecklist[item.key]);
-  const photosComplete = PHOTO_CATEGORIES.every((cat) => (photos[cat.key] || []).length > 0);
+  const photosComplete = CLOSURE_CHECKLIST_ITEMS.every((item) => (photos[item.photoCategory] || []).length > 0);
   const canSubmit = checklistComplete && photosComplete;
 
   async function handleUpload(categoryKey, file) {
@@ -131,29 +131,35 @@ export default function ClosureDetailPage() {
 
       <div className="card p-4 sm:p-5 mb-5">
         <h2 className="text-sm font-semibold text-ink-900 mb-1">Closure Photographs</h2>
-        <p className="text-xs text-ink-500 mb-4">Click a card to report an issue with that resource.</p>
+        <p className="text-xs text-ink-500 mb-4">
+          Check off a checklist item above to unlock its photo upload. Click any uploaded photo to view it full-size.
+        </p>
         <div className="grid sm:grid-cols-2 gap-4">
-          {PHOTO_CATEGORIES.map((cat) => (
-            <div
-              key={cat.key}
-              className="group relative"
-            >
-              <PhotoUploader
-                label={cat.label}
-                photos={photos[cat.key] || []}
-                uploading={uploadingCategory === cat.key}
-                onUpload={(file) => handleUpload(cat.key, file)}
-              />
-              {/* Clickable overlay to report an issue for this resource */}
-              <button
-                type="button"
-                onClick={() => openIssueForResource(cat.label)}
-                className="absolute top-2 right-2 text-xs text-red-600 hover:text-red-800 font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded px-1.5 py-0.5 border border-red-200 shadow-sm"
-              >
-                Report issue
-              </button>
-            </div>
-          ))}
+          {CLOSURE_CHECKLIST_ITEMS.map((item) => {
+            const cat = PHOTO_CATEGORIES.find((c) => c.key === item.photoCategory);
+            const checked = !!activeChecklist[item.key];
+            const uploadLocked = !checked || isReadOnlyForOrganiser;
+            return (
+              <div key={item.key} className="group relative">
+                <PhotoUploader
+                  label={cat.label}
+                  photos={photos[cat.key] || []}
+                  uploading={uploadingCategory === cat.key}
+                  onUpload={(file) => handleUpload(cat.key, file)}
+                  disabled={uploadLocked}
+                  disabledHint={!checked ? `Check "${item.label}" above first` : 'Locked'}
+                />
+                {/* Clickable overlay to report an issue for this resource */}
+                <button
+                  type="button"
+                  onClick={() => openIssueForResource(cat.label)}
+                  className="absolute top-2 right-2 text-xs text-red-600 hover:text-red-800 font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded px-1.5 py-0.5 border border-red-200 shadow-sm"
+                >
+                  Report issue
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 

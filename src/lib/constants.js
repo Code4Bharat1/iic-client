@@ -53,12 +53,14 @@ export const ISSUE_STATUS_STYLES = {
   closed: 'bg-ink-100 text-ink-600 border-ink-200',
 };
 
+// photoCategory links each checklist item to the matching PHOTO_CATEGORIES key —
+// its photo upload slot only unlocks once this checklist item is checked.
 export const CLOSURE_CHECKLIST_ITEMS = [
-  { key: 'floorPhotographed', label: 'Floor photographed after event' },
-  { key: 'tablesChairsReturned', label: 'Tables and chairs returned/arranged' },
-  { key: 'tvPhotographed', label: 'Interactive TV photographed' },
-  { key: 'micPhotographed', label: 'Microphones/equipment photographed' },
-  { key: 'otherPhotographed', label: 'Other issued resources photographed' },
+  { key: 'floorPhotographed', label: 'Floor photographed after event', photoCategory: 'overallFloor' },
+  { key: 'tablesChairsReturned', label: 'Tables and chairs returned/arranged', photoCategory: 'tablesChairs' },
+  { key: 'tvPhotographed', label: 'Interactive TV photographed', photoCategory: 'interactiveTV' },
+  { key: 'micPhotographed', label: 'Microphones/equipment photographed', photoCategory: 'microphones' },
+  { key: 'otherPhotographed', label: 'Other issued resources photographed', photoCategory: 'other' },
 ];
 
 export const PHOTO_CATEGORIES = [

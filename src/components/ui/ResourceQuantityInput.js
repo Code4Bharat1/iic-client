@@ -16,9 +16,15 @@ export default function ResourceQuantityInput({ resource, quantity, onChange, er
           aria-checked={on}
           disabled={max <= 0 && !on}
           onClick={() => onChange(on ? 0 : 1)}
-          className={`h-6 w-11 rounded-full transition-colors relative shrink-0 disabled:opacity-40 ${on ? 'bg-brand-800' : 'bg-ink-200'}`}
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out disabled:opacity-40 disabled:cursor-not-allowed ${
+            on ? 'bg-brand-800' : 'bg-ink-300'
+          }`}
         >
-          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+              on ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
         </button>
       </div>
     );

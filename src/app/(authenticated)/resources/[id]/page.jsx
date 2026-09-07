@@ -13,6 +13,7 @@ import LoadingState from '@/components/ui/LoadingState';
 import EmptyState from '@/components/ui/EmptyState';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import FloorMultiSelect from '@/components/ui/FloorMultiSelect';
 import { FLOOR_LABELS, formatDate, formatTimeRange } from '@/lib/constants';
 
 const CATEGORIES = ['Seating', 'Furniture', 'Electronics', 'Audio', 'Other'];
@@ -40,8 +41,8 @@ export default function ResourceDetailPage() {
     setForm({
       name: resource.name,
       category: resource.category,
-      inventoryScope: resource.inventoryScope || (resource.floor === 'all' ? 'shared' : 'floor'),
-      floor: resource.floor || 'all',
+      inventoryScope: resource.inventoryScope || 'shared',
+      floors: resource.floors || [],
       unitType: resource.unitType || 'quantity',
       totalQuantity: resource.totalQuantity,
       notes: resource.notes || '',
@@ -59,7 +60,7 @@ export default function ResourceDetailPage() {
     try {
       await api.put(`/resources/${id}`, {
         ...form,
-        floor: form.inventoryScope === 'shared' ? 'all' : form.floor,
+        floors: form.inventoryScope === 'shared' ? [] : form.floors,
         totalQuantity: Number(form.totalQuantity),
       });
       toast('Resource updated.', 'success');
@@ -112,7 +113,7 @@ export default function ResourceDetailPage() {
     <>
       <PageHeader
         title={resource.name}
-        subtitle={`${resource.category} · ${resource.inventoryScope === 'shared' || resource.floor === 'all' ? 'Shared (All Floors)' : (FLOOR_LABELS[resource.floor] || resource.floor)}`}
+        subtitle={`${resource.category} · ${resource.inventoryScope === 'shared' ? 'Shared (All Floors)' : (resource.floors || []).map((f) => FLOOR_LABELS[f] || f).join(', ')}`}
         actions={
           canManage && (
             <div className="flex items-center gap-2">
@@ -200,7 +201,7 @@ export default function ResourceDetailPage() {
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <button
                   type="button"
-                  onClick={() => update({ inventoryScope: 'shared', floor: 'all' })}
+                  onClick={() => update({ inventoryScope: 'shared', floors: [] })}
                   className={`p-2.5 rounded-lg border text-left transition-all ${
                     form.inventoryScope === 'shared'
                       ? 'border-brand-600 bg-brand-50/60 ring-1 ring-brand-600'
@@ -212,7 +213,7 @@ export default function ResourceDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => update({ inventoryScope: 'floor', floor: form.floor === 'all' ? (floors[0]?.key || 'ground') : form.floor })}
+                  onClick={() => update({ inventoryScope: 'floor', floors: form.floors.length ? form.floors : [floors[0]?.key].filter(Boolean) })}
                   className={`p-2.5 rounded-lg border text-left transition-all ${
                     form.inventoryScope === 'floor'
                       ? 'border-brand-600 bg-brand-50/60 ring-1 ring-brand-600'
@@ -220,18 +221,13 @@ export default function ResourceDetailPage() {
                   }`}
                 >
                   <span className="font-medium text-xs text-ink-900 block">Floor-Specific</span>
-                  <span className="text-[11px] text-ink-500">Restricted to a single floor</span>
+                  <span className="text-[11px] text-ink-500">Pooled across the selected floor(s)</span>
                 </button>
               </div>
             </div>
 
             {form.inventoryScope === 'floor' && (
-              <div>
-                <label className="field-label">Assigned Floor</label>
-                <select className="field-input" value={form.floor} onChange={(e) => update({ floor: e.target.value })}>
-                  {floors.map((f) => <option key={f.key} value={f.key}>{f.name}</option>)}
-                </select>
-              </div>
+              <FloorMultiSelect floors={floors} selected={form.floors} onChange={(next) => update({ floors: next })} />
             )}
             <div>
               <label className="field-label">Total Quantity</label>

@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
+import PhotoGrid from './PhotoGrid';
 
-export default function PhotoUploader({ label, photos = [], onUpload, uploading }) {
+export default function PhotoUploader({ label, photos = [], onUpload, uploading, disabled, disabledHint }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
   function handleFiles(files) {
+    if (disabled) return;
     const file = files?.[0];
     if (file) onUpload(file);
   }
@@ -17,6 +19,7 @@ export default function PhotoUploader({ label, photos = [], onUpload, uploading 
       </div>
       <div
         onDragOver={(e) => {
+          if (disabled) return;
           e.preventDefault();
           setDragOver(true);
         }}
@@ -24,11 +27,13 @@ export default function PhotoUploader({ label, photos = [], onUpload, uploading 
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
-          handleFiles(e.dataTransfer.files);
+          if (!disabled) handleFiles(e.dataTransfer.files);
         }}
-        onClick={() => inputRef.current?.click()}
-        className={`rounded-md border-2 border-dashed px-3 py-4 text-center cursor-pointer transition-colors ${
-          dragOver ? 'border-brand-600 bg-brand-50' : 'border-ink-200 hover:border-ink-300'
+        onClick={() => !disabled && inputRef.current?.click()}
+        className={`rounded-md border-2 border-dashed px-3 py-4 text-center transition-colors ${
+          disabled
+            ? 'border-ink-100 bg-ink-50/60 cursor-not-allowed'
+            : `cursor-pointer ${dragOver ? 'border-brand-600 bg-brand-50' : 'border-ink-200 hover:border-ink-300'}`
         }`}
       >
         <input
@@ -37,17 +42,14 @@ export default function PhotoUploader({ label, photos = [], onUpload, uploading 
           accept="image/*"
           capture="environment"
           className="hidden"
+          disabled={disabled}
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <p className="text-xs text-ink-500">{uploading ? 'Uploading…' : 'Drag & drop, or tap to choose a photo'}</p>
+        <p className="text-xs text-ink-500">
+          {disabled ? (disabledHint || 'Locked') : uploading ? 'Uploading…' : 'Drag & drop, or tap to choose a photo'}
+        </p>
       </div>
-      {photos.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 mt-2">
-          {photos.map((url) => (
-            <img key={url} src={url} alt="" className="h-16 w-full object-cover rounded border border-ink-200" />
-          ))}
-        </div>
-      )}
+      {photos.length > 0 && <PhotoGrid photos={photos} gridClassName="grid-cols-4 gap-2 mt-2" thumbClassName="h-16" />}
     </div>
   );
 }

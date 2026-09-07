@@ -10,6 +10,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import LoadingState from '@/components/ui/LoadingState';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import PhotoGrid from '@/components/ui/PhotoGrid';
 import { ISSUE_TYPE_LABELS } from '@/lib/constants';
 
 function Row({ label, value }) {
@@ -60,11 +61,7 @@ export default function IssueDetailPage() {
       {issue.photos?.length > 0 && (
         <div className="card p-4 sm:p-5 mb-5">
           <h2 className="text-sm font-semibold text-ink-900 mb-3">Supporting Photos</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {issue.photos.map((url) => (
-              <img key={url} src={url} alt="" className="h-24 w-full object-cover rounded border border-ink-200" />
-            ))}
-          </div>
+          <PhotoGrid photos={issue.photos} gridClassName="grid-cols-3 sm:grid-cols-4 gap-2" thumbClassName="h-24" />
         </div>
       )}
 

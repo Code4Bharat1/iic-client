@@ -1,0 +1,17 @@
+
+> iic-frontend@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 3.2s
+ ○ Compiling / ...
+ ✓ Compiled / in 11.8s (497 modules)
+ GET / 200 in 12744ms
+ ✓ Compiled in 732ms (248 modules)
+ ✓ Compiled in 418ms (248 modules)
+ ✓ Compiled in 375ms (248 modules)
+ ✓ Compiled in 440ms (248 modules)
